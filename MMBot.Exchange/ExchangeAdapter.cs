@@ -1,5 +1,6 @@
-﻿
+﻿using System.Timers;
 using Common.Logging;
+using Microsoft.Exchange.WebServices.Data;
 
 namespace MMBot.Exchange
 {
@@ -7,6 +8,13 @@ namespace MMBot.Exchange
     {
         private string Email { get; set; }
         private string Password { get; set; }
+
+        private ExchangeService Service { get; set; }
+
+        private Timer InboxPoll { get; set; }
+
+        private readonly SearchFilter _unreadFilter = new SearchFilter.SearchFilterCollection(LogicalOperator.And,
+                new SearchFilter.IsEqualTo(EmailMessageSchema.IsRead, false));
 
         public ExchangeAdapter(ILog logger, string adapterId)
             : base(logger, adapterId)
