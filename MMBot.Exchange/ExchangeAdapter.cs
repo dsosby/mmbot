@@ -47,6 +47,9 @@ namespace MMBot.Exchange
             InboxPoll.Elapsed += PollInbox;
             InboxPoll.AutoReset = false;
 
+            Logger.Info("Autodiscovering Exchange service url...");
+            Service.AutodiscoverUrl(Email);
+            Logger.Info("Exchange service url is " + Service.Url);
         }
 
         private void Configure()
