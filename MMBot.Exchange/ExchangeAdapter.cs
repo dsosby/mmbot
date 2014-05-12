@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Policy;
 using SystemTask = System.Threading.Tasks;
 using System.Timers;
 using Common.Logging;
@@ -12,6 +13,7 @@ namespace MMBot.Exchange
     {
         private string Email { get; set; }
         private string Password { get; set; }
+        private string ExchangeUrl { get; set; }
         private int RetrieveCount { get; set; }
         private double PollPeriod { get; set; }
         private int MaxMessagesSaved { get; set; }
@@ -43,12 +45,25 @@ namespace MMBot.Exchange
                 Credentials = new WebCredentials(Email, Password)
             };
 
+            InitializeExchangeUrl();
+
             InboxPoll = new Timer(PollPeriod);
             InboxPoll.Elapsed += PollInbox;
             InboxPoll.AutoReset = false;
+        }
 
-            Logger.Info("Autodiscovering Exchange service url...");
-            Service.AutodiscoverUrl(Email);
+        private void InitializeExchangeUrl()
+        {
+            if (string.IsNullOrEmpty(ExchangeUrl))
+            {
+                Logger.Info("Autodiscovering Exchange service url...");
+                Service.AutodiscoverUrl(Email);
+            }
+            else
+            {
+                Service.Url = new System.Uri(ExchangeUrl);
+            }
+
             Logger.Info("Exchange service url is " + Service.Url);
         }
 
@@ -56,6 +71,8 @@ namespace MMBot.Exchange
         {
             Email = Robot.GetConfigVariable("MMBOT_EXCHANGE_EMAIL");
             Password = Robot.GetConfigVariable("MMBOT_EXCHANGE_PASSWORD");
+            ExchangeUrl = Robot.GetConfigVariable("MMBOT_EXCHANGE_URL");
+
             //TODO: Folder, search criteria, retrieve count, poll period
         }
 
@@ -63,7 +80,7 @@ namespace MMBot.Exchange
         {
             Logger.Debug("Polling inbox");
 
-            var pollSearch = new SearchFilter.IsGreaterThan(EmailMessageSchema.DateTimeReceived, SinceLastPoll);
+            var pollSearch = new SearchFilter.IsGreaterThan(ItemSchema.DateTimeReceived, SinceLastPoll);
             var messageList = SearchInbox(pollSearch);
             Logger.Info(string.Format("Processing {0} messages", messageList.Count));
 
@@ -135,7 +152,7 @@ namespace MMBot.Exchange
 
         public override async SystemTask.Task Run()
         {
-            //TODO: Could wrap this in a task I guess to get rid of await warning
+            //TODO: Make this actually asynchronous
             SinceLastPoll = DateTime.Now;
             InboxPoll.Start();
         }
