@@ -83,7 +83,7 @@ namespace MMBot.Exchange
             Password = Robot.GetConfigVariable("MMBOT_EXCHANGE_PASSWORD");
             ExchangeUrl = Robot.GetConfigVariable("MMBOT_EXCHANGE_URL");
 
-            //TODO: Folder, search criteria, retrieve count, poll period
+            //TODO: Folder? Subject filter? From domain filter? Subscription timeout?
         }
 
         private void OnExchangeDisconnect(object sender, SubscriptionErrorEventArgs args)
