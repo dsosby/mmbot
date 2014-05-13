@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using SystemTask = System.Threading.Tasks;
 using Common.Logging;
@@ -11,7 +12,6 @@ namespace MMBot.Exchange
         private string Email { get; set; }
         private string Password { get; set; }
         private string ExchangeUrl { get; set; }
-        private int MaxMessagesSaved { get; set; }
 
         private PropertySet EmailProperties { get; set; }
 
@@ -27,8 +27,7 @@ namespace MMBot.Exchange
         public ExchangeAdapter(ILog logger, string adapterId)
             : base(logger, adapterId)
         {
-            MaxMessagesSaved = 100;
-            Messages = new List<EmailMessage>(MaxMessagesSaved);
+            Messages = new List<EmailMessage>();
 
             EmailProperties = new PropertySet(
                 ItemSchema.Id,
@@ -138,16 +137,11 @@ namespace MMBot.Exchange
 
         private void SaveMessages(IEnumerable<EmailMessage> incomingMessages)
         {
-            // TODO: Determine when Robot has processed message and remove it from Messages
-            // Or can I pass the ID in the Message and then fetch it once I get a callback?
-
+            //Only save messages for an hour or so
             Messages.AddRange(incomingMessages);
-            var removeCount = Messages.Count() - MaxMessagesSaved;
-            if (removeCount > 0)
-            {
-                Logger.Info("Removing " + removeCount + " messages from saved messages");
-                Messages.RemoveRange(0, removeCount);
-            }
+            Messages = Messages
+                .Where(m => m.DateTimeReceived > DateTime.Now.AddHours(-1))
+                .ToList();
         }
 
         public override async SystemTask.Task Send(Envelope envelope, params string[] messages)
