@@ -111,7 +111,7 @@ namespace MMBot.Exchange
             var user = Robot.GetUser(
                 message.From.Address,
                 message.From.Name,
-                message.Id.ToString(),
+                message.Id.UniqueId,
                 Id);
 
             var messageBody = message.UniqueBody.Text.Trim();
@@ -152,14 +152,19 @@ namespace MMBot.Exchange
         {
             if (messages == null || !messages.Any()) return;
 
-            //TODO: How the fuck do I get a hold of the parent message to reply to?
-            Logger.Info("Responding: " + string.Join("\n", messages));
+            var replyToId = envelope.User.Room;
+            var replyTo = Messages.FirstOrDefault(m => m.Id.UniqueId == replyToId);
 
-            var response = new EmailMessage(Service);
-            response.Subject = "Robot response";
-            response.Body = string.Join("<br>", messages);
-            response.ToRecipients.Add(Email);
-            response.Send();
+            if (replyTo == null)
+            {
+                Logger.Info("Could not find parent message for " + replyToId);
+                return;
+            }
+
+            var response = string.Join("<br>", messages);
+
+            Logger.Info(string.Format("Replying to {0}: {1}", replyTo.From.Name, response));
+            replyTo.Reply(response, replyAll: true);
         }
 
         public override async SystemTask.Task Run()
