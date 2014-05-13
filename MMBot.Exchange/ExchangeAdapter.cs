@@ -44,6 +44,13 @@ namespace MMBot.Exchange
             base.Initialize(robot);
             Configure();
 
+            if (string.IsNullOrEmpty(Email) ||
+                string.IsNullOrEmpty(Password))
+            {
+                Logger.Warn("Exchange Adapter requires MMBOT_EXCHANGE_EMAIL and MMBOT_EXCHANGE_PASSWORD");
+                return;
+            }
+
             Service = new ExchangeService
             {
                 Credentials = new WebCredentials(Email, Password)
@@ -167,12 +174,16 @@ namespace MMBot.Exchange
 
         public override async SystemTask.Task Run()
         {
+            if (Service == null) return;
+
             IsRunning = true;
             ExchangeConnection.Open();
         }
 
         public override async SystemTask.Task Close()
         {
+            if (Service == null) return;
+
             IsRunning = false;
             ExchangeConnection.Close();
         }
