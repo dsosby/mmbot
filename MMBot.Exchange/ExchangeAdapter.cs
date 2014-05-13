@@ -47,6 +47,7 @@ namespace MMBot.Exchange
 
             InitializeExchangeUrl();
 
+            //TODO: Don't use poll, use streaming notifications
             InboxPoll = new Timer(PollPeriod);
             InboxPoll.Elapsed += PollInbox;
             InboxPoll.AutoReset = false;
@@ -84,8 +85,8 @@ namespace MMBot.Exchange
             var messageList = SearchInbox(pollSearch);
             Logger.Info(string.Format("Processing {0} messages", messageList.Count));
 
-            foreach (var message in messageList) ProcessMessage(message.Id);
             SaveMessages(messageList);
+            foreach (var message in messageList) ProcessMessage(message.Id);
 
             //Setup for next poll
             //TODO: Is it better to use last message timestamp?
@@ -163,6 +164,8 @@ namespace MMBot.Exchange
 
             var response = string.Join("<br>", messages);
 
+            //TODO: Doesn't seem to be replying all
+            //TODO: Make these messages prettier to match Outlook styling (HR, use Calibri/sans-serif)
             Logger.Info(string.Format("Replying to {0}: {1}", replyTo.From.Name, response));
             replyTo.Reply(response, replyAll: true);
         }
