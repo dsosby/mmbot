@@ -84,7 +84,7 @@ namespace MMBot.Exchange
             var messageList = SearchInbox(pollSearch);
             Logger.Info(string.Format("Processing {0} messages", messageList.Count));
 
-            foreach (var message in messageList) ProcessMessage(message);
+            foreach (var message in messageList) ProcessMessage(message.Id);
             SaveMessages(messageList);
 
             //Setup for next poll
@@ -95,16 +95,28 @@ namespace MMBot.Exchange
             InboxPoll.Start();
         }
 
-        private void ProcessMessage(EmailMessage message)
+        private void ProcessMessage(ItemId id)
         {
-            var messageBody = message.UniqueBody.ToString();
+            Logger.Info("Getting info for new mail message... ");
+            var props = new PropertySet(
+                ItemSchema.Id,
+                ItemSchema.Subject,
+                ItemSchema.UniqueBody,
+                ItemSchema.IsFromMe,
+                EmailMessageSchema.From
+            );
+            props.RequestedBodyType = BodyType.Text;
+            var message = EmailMessage.Bind(Service, id, props);
+
             var user = Robot.GetUser(
                 message.From.Address,
                 message.From.Name,
                 message.Id.ToString(),
                 Id);
 
-            Logger.Debug(string.Format("Received message from {0}: {1}", user.Id, messageBody));
+            var messageBody = message.UniqueBody.Text.Trim();
+
+            Logger.Info(string.Format("Received message from {0}: {1}", user.Id, messageBody));
             if (string.IsNullOrEmpty(messageBody))
             {
                 Logger.Info("Skipping empty message: " + message.Subject);
