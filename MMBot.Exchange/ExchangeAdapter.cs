@@ -34,6 +34,7 @@ namespace MMBot.Exchange
                 ItemSchema.Subject,
                 ItemSchema.UniqueBody,
                 ItemSchema.IsFromMe,
+                ItemSchema.DateTimeReceived,
                 EmailMessageSchema.From
             );
             EmailProperties.RequestedBodyType = BodyType.Text;
