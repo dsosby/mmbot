@@ -90,13 +90,16 @@ namespace MMBot.Exchange
             Email = Robot.GetConfigVariable("MMBOT_EXCHANGE_EMAIL");
             Password = Robot.GetConfigVariable("MMBOT_EXCHANGE_PASSWORD");
             ExchangeUrl = Robot.GetConfigVariable("MMBOT_EXCHANGE_URL");
-
-            bool trimSignature;
-            Boolean.TryParse(Robot.GetConfigVariable("MMBOT_EXCHANGE_TRIMSIGNATURE") ?? "true", out trimSignature);
-            TrimSignature = trimSignature;
-            Logger.Info("Exchange:TrimSignature is " + trimSignature);
+            TrimSignature = GetBooleanConfig("MMBOT_EXCHANGE_TRIMSIGNATURE", true);
 
             //TODO: Folder? Subject filter? From domain filter? Subscription timeout?
+        }
+
+        private bool GetBooleanConfig(string name, bool defaultValue)
+        {
+            bool value;
+            var success = Boolean.TryParse(Robot.GetConfigVariable(name) ?? "", out value);
+            return success ? value : defaultValue;
         }
 
         private void OnExchangeDisconnect(object sender, SubscriptionErrorEventArgs args)
