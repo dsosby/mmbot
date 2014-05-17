@@ -198,8 +198,8 @@ namespace MMBot.Exchange
             }
 
             var response = string.Join("<br>", messages);
+            response = response.Replace(Environment.NewLine, "<br>");
 
-            //TODO: Doesn't seem to be replying all
             //TODO: Make these messages prettier to match Outlook styling (HR, use Calibri/sans-serif)
             Logger.Info(string.Format("Replying to {0}: {1}", replyTo.From.Name, response));
             replyTo.Reply(response, replyAll: true);
