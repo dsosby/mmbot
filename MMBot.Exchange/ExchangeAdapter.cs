@@ -13,6 +13,7 @@ namespace MMBot.Exchange
         private string Password { get; set; }
         private string ExchangeUrl { get; set; }
         private bool TrimSignature { get; set; }
+        private bool AllowImplicitCommand { get; set; }
 
         private PropertySet EmailProperties { get; set; }
 
@@ -36,7 +37,8 @@ namespace MMBot.Exchange
                 ItemSchema.UniqueBody,
                 ItemSchema.IsFromMe,
                 ItemSchema.DateTimeReceived,
-                EmailMessageSchema.From
+                EmailMessageSchema.From,
+                EmailMessageSchema.ToRecipients
             );
             EmailProperties.RequestedBodyType = BodyType.Text;
         }
@@ -91,6 +93,7 @@ namespace MMBot.Exchange
             Password = Robot.GetConfigVariable("MMBOT_EXCHANGE_PASSWORD");
             ExchangeUrl = Robot.GetConfigVariable("MMBOT_EXCHANGE_URL");
             TrimSignature = GetBooleanConfig("MMBOT_EXCHANGE_TRIMSIGNATURE", true);
+            AllowImplicitCommand = GetBooleanConfig("MMBOT_EXCHANGE_ALLOWIMPLICITCOMMAND", true);
 
             //TODO: Folder? Subject filter? From domain filter? Subscription timeout?
         }
@@ -142,6 +145,14 @@ namespace MMBot.Exchange
             var messageBody = message.UniqueBody.Text.Trim();
             if (TrimSignature) messageBody = TrimSignatureFromBody(messageBody);
 
+            if (AllowImplicitCommand && message.IsOnlyTo(Email))
+            {
+                if (!messageBody.StartsWith(Robot.Name, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    messageBody = Robot.Name + ", " + messageBody;
+                }
+            }
+
             //TODO: Try and add spoofed address detection
 
             Logger.Info(string.Format("Received message from {0}: {1}", user.Id, messageBody));
@@ -161,10 +172,6 @@ namespace MMBot.Exchange
             var firstLines = body
                 .Split('\n')
                 .TakeWhile(line => !string.IsNullOrWhiteSpace(line));
-            foreach (var line in firstLines)
-            {
-                Logger.Info(string.Format("\"{0}\"", line));
-            }
             return string.Join("\n", firstLines).Trim();
         }
 
@@ -212,6 +219,16 @@ namespace MMBot.Exchange
 
             IsRunning = false;
             ExchangeConnection.Close();
+        }
+    }
+
+    static class EmailMessageExtensions
+    {
+        public static bool IsOnlyTo(this EmailMessage message, string address)
+        {
+            return message != null &&
+                   message.ToRecipients.Count == 1 &&
+                   message.ToRecipients[0].Address == address;
         }
     }
 }
