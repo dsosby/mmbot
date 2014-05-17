@@ -12,6 +12,7 @@ namespace MMBot.Exchange
         private string Email { get; set; }
         private string Password { get; set; }
         private string ExchangeUrl { get; set; }
+        private bool TrimSignature { get; set; }
 
         private PropertySet EmailProperties { get; set; }
 
@@ -90,6 +91,11 @@ namespace MMBot.Exchange
             Password = Robot.GetConfigVariable("MMBOT_EXCHANGE_PASSWORD");
             ExchangeUrl = Robot.GetConfigVariable("MMBOT_EXCHANGE_URL");
 
+            bool trimSignature;
+            Boolean.TryParse(Robot.GetConfigVariable("MMBOT_EXCHANGE_TRIMSIGNATURE") ?? "true", out trimSignature);
+            TrimSignature = trimSignature;
+            Logger.Info("Exchange:TrimSignature is " + trimSignature);
+
             //TODO: Folder? Subject filter? From domain filter? Subscription timeout?
         }
 
@@ -131,6 +137,9 @@ namespace MMBot.Exchange
                 Id);
 
             var messageBody = message.UniqueBody.Text.Trim();
+            if (TrimSignature) messageBody = TrimSignatureFromBody(messageBody);
+
+            //TODO: Try and add spoofed address detection
 
             Logger.Info(string.Format("Received message from {0}: {1}", user.Id, messageBody));
             if (string.IsNullOrEmpty(messageBody))
@@ -141,6 +150,19 @@ namespace MMBot.Exchange
 
             var robotMessage = new TextMessage(user, messageBody);
             SystemTask.Task.Run(() => Robot.Receive(robotMessage));
+        }
+
+        // Returns body up to the first blank line
+        private string TrimSignatureFromBody(string body)
+        {
+            var firstLines = body
+                .Split('\n')
+                .TakeWhile(line => !string.IsNullOrWhiteSpace(line));
+            foreach (var line in firstLines)
+            {
+                Logger.Info(string.Format("\"{0}\"", line));
+            }
+            return string.Join("\n", firstLines).Trim();
         }
 
         private void SaveMessages(IEnumerable<EmailMessage> incomingMessages)
