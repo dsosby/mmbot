@@ -14,6 +14,7 @@ namespace MMBot.Exchange
         private string ExchangeUrl { get; set; }
         private bool TrimSignature { get; set; }
         private bool AllowImplicitCommand { get; set; }
+        private bool UseOutlookStyle { get; set; }
 
         private PropertySet EmailProperties { get; set; }
 
@@ -94,6 +95,7 @@ namespace MMBot.Exchange
             ExchangeUrl = Robot.GetConfigVariable("MMBOT_EXCHANGE_URL");
             TrimSignature = GetBooleanConfig("MMBOT_EXCHANGE_TRIMSIGNATURE", true);
             AllowImplicitCommand = GetBooleanConfig("MMBOT_EXCHANGE_ALLOWIMPLICITCOMMAND", true);
+            UseOutlookStyle = GetBooleanConfig("MMBOT_EXCHANGE_USEOUTLOOKSTYLE", true);
 
             //TODO: Folder? Subject filter? From domain filter? Subscription timeout?
         }
@@ -199,10 +201,17 @@ namespace MMBot.Exchange
 
             var response = string.Join("<br>", messages);
             response = response.Replace(Environment.NewLine, "<br>");
+            if (UseOutlookStyle) response = WrapInOutlookStyle(response);
+            //TODO: Embed local images as inline attachments
 
-            //TODO: Make these messages prettier to match Outlook styling (HR, use Calibri/sans-serif)
             Logger.Info(string.Format("Replying to {0}: {1}", replyTo.From.Name, response));
             replyTo.Reply(response, replyAll: true);
+        }
+
+        private static string WrapInOutlookStyle(string message)
+        {
+            //TODO: Basic reply appends an <hr> which is ugly...need to style our own using border:0;border-top:1px solid #e1e1e1;
+            return string.Format("<div style='font-family: Calibri,sans-serif; font-size: 11pt;'>{0}</div>", message);
         }
 
         public override async SystemTask.Task Run()
