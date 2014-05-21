@@ -15,6 +15,7 @@ namespace MMBot.Exchange
         private bool TrimSignature { get; set; }
         private bool AllowImplicitCommand { get; set; }
         private bool UseOutlookStyle { get; set; }
+        private int MaxRetry { get; set; }
 
         private PropertySet EmailProperties { get; set; }
 
@@ -25,6 +26,8 @@ namespace MMBot.Exchange
         private bool IsRunning { get; set; }
 
         private List<EmailMessage> Messages { get; set; }
+
+        private int retryCount;
 
 
         public ExchangeAdapter(ILog logger, string adapterId)
@@ -96,6 +99,7 @@ namespace MMBot.Exchange
             TrimSignature = GetBooleanConfig("MMBOT_EXCHANGE_TRIMSIGNATURE", true);
             AllowImplicitCommand = GetBooleanConfig("MMBOT_EXCHANGE_ALLOWIMPLICITCOMMAND", true);
             UseOutlookStyle = GetBooleanConfig("MMBOT_EXCHANGE_USEOUTLOOKSTYLE", true);
+            MaxRetry = GetIntegerConfig("MMBOT_EXCHANGE_MAXRETRY", 5);
 
             //TODO: Folder? Subject filter? From domain filter? Subscription timeout?
         }
@@ -107,6 +111,13 @@ namespace MMBot.Exchange
             return success ? value : defaultValue;
         }
 
+        private int GetIntegerConfig(string name, int defaultValue)
+        {
+            int value;
+            var success = int.TryParse(Robot.GetConfigVariable(name) ?? "", out value);
+            return success ? value : defaultValue;
+        }
+
         private void OnExchangeDisconnect(object sender, SubscriptionErrorEventArgs args)
         {
             bool isRecoverable = args.Exception == null;
@@ -115,10 +126,20 @@ namespace MMBot.Exchange
             {
                 Logger.Info("Restarting Exchange subscription");
                 ExchangeConnection.Open();
+
+                // We don't have a connected event, so we'll assume if we ended w/o
+                // error we were in a good connection previously.
+                retryCount = 0;
             }
             else
             {
                 Logger.Info("Exchange service disconnected: " + IsRunning + " " + args.Exception);
+                if (retryCount < MaxRetry)
+                {
+                    retryCount++;
+                    Logger.Info("Attempting Exchange reconnect: " + retryCount + " of " + MaxRetry);
+                    ExchangeConnection.Open();
+                }
             }
         }
 
